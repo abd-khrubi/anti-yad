@@ -1,3 +1,4 @@
+import os
 import time
 import pyautogui
 import subprocess
@@ -9,7 +10,7 @@ pyautogui.FAILSAFE = True  # point mouse to (0, 0) in order to force stop the sc
 
 DEBUG = False
 
-PASSWORD = 'Fuckoff'  # So safe  Much security
+PASSWORD = 'password'  # So safe  Much security
 
 
 def format_time(seconds=None):
@@ -165,10 +166,19 @@ def next_check_counter(yad_bot):
 			time.sleep(1)
 
 
+def rel_path(filename):
+	return os.path.join(os.path.dirname(__file__), filename)
+
+
 if __name__ == '__main__':
-	bot = AntiYad(log_file='/cs/usr/abd_khrubi/Desktop/yad_log.txt')
-	thread2 = MultiThread(next_check_counter, bot)
-	thread1 = MultiThread(bot.run)
-	# bot.run()
-	thread2.start()
+	date = time.strftime('%d.%m.%Y')
+	log_dir = rel_path(f"logs/")
+	if not os.path.exists(log_dir):
+		os.mkdir(log_dir)
+
+	bot = AntiYad(log_file=f'{log_dir}/{date}.txt')
+	thread1 = MultiThread(next_check_counter, bot)
+	thread2 = MultiThread(bot.run)
+
 	thread1.start()
+	thread2.start()
