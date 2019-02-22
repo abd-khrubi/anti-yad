@@ -9,8 +9,9 @@ pyautogui.PAUSE = 0.5
 pyautogui.FAILSAFE = True  # point mouse to (0, 0) in order to force stop the script
 
 DEBUG = False
+LOG_FILE = None  # put a directory relative path to write logs to
 
-PASSWORD = 'password'  # So safe  Much security
+PASSWORD = 'password'  # So safe  Much security`
 
 
 def format_time(seconds=None):
@@ -157,6 +158,9 @@ class MultiThread(threading.Thread):
 
 
 def next_check_counter(yad_bot):
+	"""
+	Changes the title of the console to show when the next check is
+	"""
 	if not (hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()):
 		return
 	while True:
@@ -171,12 +175,16 @@ def rel_path(filename):
 
 
 if __name__ == '__main__':
-	date = time.strftime('%d.%m.%Y')
-	log_dir = rel_path(f"logs/")
-	if not os.path.exists(log_dir):
-		os.mkdir(log_dir)
+	if LOG_FILE:
+		date = time.strftime('%d.%m.%Y')
+		log_dir = rel_path(f"logs/")
+		if not os.path.exists(log_dir):
+			os.mkdir(log_dir)
 
-	bot = AntiYad(log_file=f'{log_dir}/{date}.txt')
+		bot = AntiYad(log_file=f'{log_dir}/{date}.txt')
+	else:
+		bot = AntiYad()
+
 	thread1 = MultiThread(next_check_counter, bot)
 	thread2 = MultiThread(bot.run)
 
