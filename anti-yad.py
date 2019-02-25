@@ -9,9 +9,9 @@ pyautogui.PAUSE = 0.5
 pyautogui.FAILSAFE = True  # point mouse to (0, 0) in order to force stop the script
 
 DEBUG = False
-LOG_FILE = None  # put a directory relative path to write logs to
+LOG_FILE = 'logs'  # put a directory relative path to write logs to
 
-PASSWORD = 'password'  # So safe  Much security`
+PASSWORD = 'Fuckoff'  # So safe  Much security`
 
 
 def format_time(seconds=None):
@@ -57,13 +57,13 @@ class AntiYad:
 	BUTTON_POSITION = (1090, 655)  # x,y position of the yes button
 
 	def __init__(self, log_file=None, check_interval=600, max_fails=10):
-		self.log_file = log_file  # TODO make it write a log
 		self.check_interval = check_interval
 		self.failed = 0
 		self.max_fails = max_fails
 		self.next_check = -1
 		self.estimated_next = -1
 		self.logger = Logger(log_file)
+		self.original_mouse_pos = None
 
 	def check_yad(self):
 		self.logger.log_debug('Searching for any YAD process')
@@ -135,12 +135,15 @@ class AntiYad:
 			pid = self.check_yad()
 			self.failed = 0
 			if pid > 0:
+				self.original_mouse_pos = pyautogui.position()
 				locked = self.is_locked()
 				if locked:
 					self.unlock(PASSWORD)
 				self.click_the_yad()
 				if locked:
 					self.lock()
+				pyautogui.moveTo(*self.original_mouse_pos)
+				self.original_mouse_pos = None
 			else:
 				self.logger.log_info('Nope')
 			self.next_check = time.time() + self.check_interval
@@ -177,7 +180,7 @@ def rel_path(filename):
 if __name__ == '__main__':
 	if LOG_FILE:
 		date = time.strftime('%d.%m.%Y')
-		log_dir = rel_path(f"logs/")
+		log_dir = rel_path(f"{LOG_FILE}/")
 		if not os.path.exists(log_dir):
 			os.mkdir(log_dir)
 
