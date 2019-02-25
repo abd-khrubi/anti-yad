@@ -164,7 +164,7 @@ def next_check_counter(yad_bot):
 	"""
 	Changes the title of the console to show when the next check is
 	"""
-	if not (hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()):
+	if not (hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()):  # Do not print anything if the console is not atty
 		return
 	while True:
 		if yad_bot.next_check > 0:
