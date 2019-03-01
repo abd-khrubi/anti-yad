@@ -4,7 +4,7 @@ import pyautogui
 import subprocess
 import threading
 import sys
-from fuck_the_yad import get_pos
+from fuck_the_yad import get_position
 
 pyautogui.PAUSE = 0.5
 pyautogui.FAILSAFE = True  # point mouse to (0, 0) in order to force stop the script
@@ -40,17 +40,17 @@ class Logger:
 		else:
 			self.print(f'[{format_time()}] {message}', error=error)
 
-	def log_error(self, message):
+	def error(self, message):
 		self.log(message, prefix='ERROR', error=True)
 
-	def log_debug(self, message):
+	def debug(self, message):
 		if DEBUG:
 			self.log(message, prefix='DEBUG')
 
-	def log_info(self, message: str):
+	def info(self, message: str):
 		self.log(message, prefix='INFO')
 
-	def log_warning(self, message):
+	def warning(self, message):
 		self.log(message, prefix='WARNING')
 
 
@@ -67,7 +67,7 @@ class AntiYad:
 		self.original_mouse_pos = None
 
 	def check_yad(self):
-		self.logger.log_debug('Searching for any YAD process')
+		self.logger.debug('Searching for any YAD process')
 		try:
 			res = str(subprocess.check_output('ps -e | grep yad', shell=True))[2:-1]
 			processes = list(filter(lambda x: len(x) > 0, res.split('\\n')))
@@ -78,12 +78,12 @@ class AntiYad:
 			if len(processes) > 0:
 				# at this point we know that there is at least one yad process
 				if self.failed == 0:
-					self.logger.log_info(f'Found a yad (pid: {info[0][0]})')
+					self.logger.info(f'Found a yad (pid: {info[0][0]})')
 				elif self.failed > 1:  # "failed 1 times" ??
-					self.logger.log_warning(f'Found a yad (pid: {info[0][0]}) - failed {self.failed} times')
+					self.logger.warning(f'Found a yad (pid: {info[0][0]}) - failed {self.failed} times')
 				return int(info[0][0])
 		except subprocess.CalledProcessError:
-			self.logger.log_debug('`ps -e` is empty')
+			self.logger.debug('`ps -e` is empty')
 		return -1
 
 	def is_locked(self):
@@ -93,11 +93,11 @@ class AntiYad:
 			return res.endswith('is active')
 		except subprocess.CalledProcessError:
 			pass
-		self.logger.log_error("No response from mate-screensaver")
+		self.logger.error("No response from mate-screensaver")
 		return False
 
 	def unlock(self, password):
-		self.logger.log_info("Unlocking")
+		self.logger.info("Unlocking")
 		temp_pause = pyautogui.PAUSE
 		pyautogui.PAUSE = 2
 		pyautogui.moveTo(None, 100, duration=0.1)  # To wake the screen
@@ -108,28 +108,33 @@ class AntiYad:
 		pyautogui.PAUSE = temp_pause
 		time.sleep(2)
 		if self.is_locked():
-			self.logger.log_error('Failed to unlock... Skipping this check.')
+			self.logger.error('Failed to unlock... Skipping this check.')
 			self.failed = self.max_fails
 
 	def lock(self):
-		self.logger.log_info('Locking')
+		self.logger.info('Locking')
 		pyautogui.hotkey('ctrlleft', 'altleft', 'l')
 
 	def click_the_yad(self):
 		if self.failed >= self.max_fails:
-			self.logger.log_error('Cannot dismiss yad GUI')
+			self.logger.error('Cannot dismiss yad GUI')
 			return
-		base_x, base_y = get_pos()
-		x, y = base_x + 400, base_y + 200
-		pyautogui.click(x, y)
+		x, y = get_position()
+		if not x or not y:
+			x, y = self.BUTTON_POSITION
+			self.logger.warning('Could not determine dismiss button position. Using default location.')
+		else:
+			self.logger.info(f'Located dismiss button at {x, y}')
+		self.logger.info('')
+		pyautogui.click(x, y, duration=0.2)
 		self.failed += 1
 		time.sleep(3)
 		if self.check_yad() > 0:
 			self.click_the_yad()
 		else:
-			self.logger.log_info('Dismissed Yad')
-			self.logger.log_info(
-				f'Estimating next yad at {time.strftime("%I:%M:%S %p",time.localtime(time.time() + (60 * 60)))}')
+			self.logger.info('Dismissed Yad')
+			t = time.strftime("%I:%M:%S %p", time.localtime(time.time() + (60 * 60)))
+			self.logger.info(f'Estimating next yad at {t}')
 
 	def run(self):
 		self.logger.log('Starting Anti yad')
@@ -148,7 +153,7 @@ class AntiYad:
 				pyautogui.moveTo(*self.original_mouse_pos)
 				self.original_mouse_pos = None
 			else:
-				self.logger.log_info('Nope')
+				self.logger.info('Nope')
 			self.next_check = time.time() + self.check_interval
 			time.sleep(self.check_interval)
 
@@ -172,7 +177,8 @@ def next_check_counter(yad_bot):
 	while True:
 		if yad_bot.next_check > 0:
 			t = time.gmtime(yad_bot.next_check - time.time())
-			print(f'\33]0;Next check in {time.strftime("%H:%M:%S", t)}\a', end='', flush=True)
+			s = time.strftime("%H:%M:%S", t)
+			print(f'\33]0;Next check in {s}\a', end='', flush=True)
 			time.sleep(1)
 
 
