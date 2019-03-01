@@ -4,6 +4,7 @@ import pyautogui
 import subprocess
 import threading
 import sys
+from fuck_the_yad import get_pos
 
 pyautogui.PAUSE = 0.5
 pyautogui.FAILSAFE = True  # point mouse to (0, 0) in order to force stop the script
@@ -118,7 +119,9 @@ class AntiYad:
 		if self.failed >= self.max_fails:
 			self.logger.log_error('Cannot dismiss yad GUI')
 			return
-		pyautogui.click(*self.BUTTON_POSITION)
+		base_x, base_y = get_pos()
+		x, y = base_x + 400, base_y + 200
+		pyautogui.click(x, y)
 		self.failed += 1
 		time.sleep(3)
 		if self.check_yad() > 0:
