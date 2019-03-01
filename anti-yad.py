@@ -12,7 +12,7 @@ pyautogui.FAILSAFE = True  # point mouse to (0, 0) in order to force stop the sc
 DEBUG = False
 LOG_FILE = 'logs'  # put a directory relative path to write logs to
 
-PASSWORD = 'Fuckoff'  # So safe  Much security`
+PASSWORD = 'password'  # So safe  Much security`
 
 
 def format_time(seconds=None):
@@ -119,13 +119,17 @@ class AntiYad:
 		if self.failed >= self.max_fails:
 			self.logger.error('Cannot dismiss yad GUI')
 			return
-		x, y = get_position()
+		source, x, y = get_position()
 		if not x or not y:
 			x, y = self.BUTTON_POSITION
 			self.logger.warning('Could not determine dismiss button position. Using default location.')
 		else:
-			self.logger.info(f'Located dismiss button at {x, y}')
-		self.logger.info('')
+			s = ''
+			if source == 0:
+				s = 'button image'
+			elif source == 1:
+				s = 'window position'
+			self.logger.info(f'Located dismiss button at {x, y} from {s}')
 		pyautogui.click(x, y, duration=0.2)
 		self.failed += 1
 		time.sleep(3)

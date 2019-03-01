@@ -51,7 +51,8 @@ def get_window_dim(window_id):
 
 def get_position():
 	try:
-		return pyscreeze.locateCenterOnScreen(rel_path('button.png'))
+		x, y = pyscreeze.locateCenterOnScreen(rel_path('button.png'))
+		return 0, x, y
 	except (pyscreeze.ImageNotFoundException, FileNotFoundError):
 		pass
 
@@ -64,10 +65,10 @@ def get_position():
 		x = base_x + width - 20
 		y = base_y + height - 15
 		if x != -22 and y != -17:
-			return x, y
+			return 1, x, y
 
 	# if all failed return None to try and click on a fixed position
-	return None, None
+	return None, None, None
 
 
 def rel_path(filename):
