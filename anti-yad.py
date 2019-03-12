@@ -12,7 +12,7 @@ pyautogui.FAILSAFE = True  # point mouse to (0, 0) in order to force stop the sc
 DEBUG = False
 LOG_FILE = 'logs'  # put a directory relative path to write logs to
 
-PASSWORD = 'password'  # So safe  Much security`
+PASSWORD = 'Fuckoff'  # So safe  Much security`
 
 
 def format_time(seconds=None):
@@ -97,6 +97,7 @@ class AntiYad:
 		return False
 
 	def unlock(self, password):
+		os.system('python3 /cs/usr/abd_khrubi/log/system-logger.py yad')
 		self.logger.info("Unlocking")
 		temp_pause = pyautogui.PAUSE
 		pyautogui.PAUSE = 2
@@ -119,8 +120,9 @@ class AntiYad:
 		if self.failed >= self.max_fails:
 			self.logger.error('Cannot dismiss yad GUI')
 			return
-		source, x, y = get_position()
-		if not x or not y:
+		source, x, y = get_position(self.logger)
+		# if not x or not y:  # What if the button is at (0, 0)
+		if x is None or y is None:
 			x, y = self.BUTTON_POSITION
 			self.logger.warning('Could not determine dismiss button position. Using default location.')
 		else:

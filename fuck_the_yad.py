@@ -3,6 +3,8 @@
 """
 
 import subprocess
+
+import datetime
 import pyscreeze
 import os
 
@@ -49,12 +51,15 @@ def get_window_dim(window_id):
 	return w, h
 
 
-def get_position():
+def get_position(logger):
 	try:
 		x, y = pyscreeze.locateCenterOnScreen(rel_path('button.png'))
 		return 0, x, y
-	except (pyscreeze.ImageNotFoundException, FileNotFoundError):
-		pass
+	except (pyscreeze.ImageNotFoundException, FileNotFoundError) as e:
+
+		img_name = rel_path(f"logs/err-button-{(datetime.datetime.now().strftime('%Y-%m%d_%H-%M-%S-%f'))}.png")
+		logger.error(f"Could not find button image: {type(e).__name__}: {str(e)}\nAttaching screenshot: {img_name}")
+		subprocess.call(['scrot', img_name])
 
 	# could not locate the button by image
 	# try to locate the window id and position
