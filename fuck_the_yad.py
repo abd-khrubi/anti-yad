@@ -53,13 +53,25 @@ def get_window_dim(window_id):
 
 def get_position(logger):
 	try:
-		x, y = pyscreeze.locateCenterOnScreen(rel_path('button.png'))
+		if pyscreeze.useOpenCV and pyscreeze.locateAll == pyscreeze._locateAll_opencv:
+			# try:
+			x, y = pyscreeze.locateCenterOnScreen(rel_path('button.png'), confidence=0.8)  # requires cv2
+			# except pyscreeze.ImageNotFoundException as e:
+			# 	highest = float(str(e)[~5:-1])
+			# 	if highest > 0:
+			# 		x, y = pyscreeze.locateCenterOnScreen(rel_path('button.png'), confidence=highest)
+			# 	else:
+			# 		raise
+		else:
+			x, y = pyscreeze.locateCenterOnScreen(rel_path('button.png'))
+			logger.info('Install cv2 for better results.')
+		# x, y = pyscreeze.locateOnScreen(rel_path('button-small.png'), confidence=0.8)
 		return 0, x, y
-	except (pyscreeze.ImageNotFoundException, FileNotFoundError) as e:
-
-		img_name = rel_path(f"logs/err-button-{(datetime.datetime.now().strftime('%Y-%m%d_%H-%M-%S-%f'))}.png")
-		logger.error(f"Could not find button image: {type(e).__name__}: {str(e)}\nAttaching screenshot: {img_name}")
-		subprocess.call(['scrot', img_name])
+	except pyscreeze.ImageNotFoundException as e:
+		# logger.error(f"Could not find button image: {type(e).__name__}: {str(e)}\nAttaching screenshot: {img_name}")
+		logger.error(f"Could not find button image: {type(e).__name__}: {str(e)}")
+		# img_name = rel_path(f"logs/err-button-{(datetime.datetime.now().strftime('%Y-%m%d_%H-%M-%S-%f'))}.png")
+		# subprocess.call(['scrot', img_name])
 
 	# could not locate the button by image
 	# try to locate the window id and position

@@ -30,7 +30,7 @@ def get_yad_id():
 	windows = sorted(windows)
 	for window in windows:
 		window_name = execute_shell_cmd(f'xprop -id {window} WM_NAME')[0].split(' = ')
-		if len(window_name) > 1 and window_name[1][1:-3] == 'Are you alive?':
+		if len(window_name) > 1 and window_name[1][1:-1] == 'Are you alive?':
 			return window
 	return None
 
@@ -40,21 +40,21 @@ def get_window_rect(window_id):
 	x, y, w, h = -1, -1, -1, -1
 	for line in attrs:
 		line = line.strip()
-		if line.startswith('Absolute upper-left X'):
-			x = int(line[len('Absolute upper-left X'):])
-		if line.startswith('Absolute upper-left Y'):
-			y = int(line[len('Absolute upper-left Y'):])
+		if line.startswith('Absolute upper-left X:'):
+			x = int(line[len('Absolute upper-left X:'):].strip())
+		if line.startswith('Absolute upper-left Y:'):
+			y = int(line[len('Absolute upper-left Y:'):].strip())
 		if line.startswith('Width'):
-			w = int(line[len('Width: '):])
+			w = int(line[len('Width:'):].strip())
 		if line.startswith("Height"):
-			h = int(line[len("Height: "):])
+			h = int(line[len("Height:"):].strip())
 	return x, y, w, h
 
 
 def find_button_pos(logger):
 	try:
 		if pyscreeze.useOpenCV:
-			x, y = pyscreeze.locateCenterOnScreen(rel_path('assets/button.png'), confidence=0.8)
+			x, y = pyscreeze.locateCenterOnScreen(rel_path('../assets/button.png'), confidence=0.8)
 		else:
 			x, y = pyscreeze.locateCenterOnScreen(rel_path('assets/button.png'))
 			logger.warning('Install OpenCV for better results.')
@@ -103,7 +103,7 @@ def get_en_layout():
 def change_keyboard_layout(layout_idx=None):
 	if layout_idx is None:
 		layout_idx = get_en_layout()
-	execute_shell_cmd(rel_path(f'utils/xkblayout-state set {layout_idx}'))
+	execute_shell_cmd(rel_path(f'./xkblayout-state set {layout_idx}'))
 
 
 def format_time(seconds=None):

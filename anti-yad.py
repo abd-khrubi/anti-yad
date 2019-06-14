@@ -144,7 +144,7 @@ class AntiYad:
 
 	def run(self):
 		self.logger.log('Starting Anti yad')
-		time.sleep(3)
+		time.sleep(1.5)
 		while True:
 			pid = self.check_yad()
 			self.failed = 0
@@ -193,18 +193,22 @@ def rel_path(filename):
 
 
 if __name__ == '__main__':
+	subprocess.call('clear', shell=True)
+
 	if LOG_FILE:
 		date = time.strftime('%d.%m.%Y')
 		log_dir = rel_path(f"{LOG_FILE}/")
 		if not os.path.exists(log_dir):
 			os.mkdir(log_dir)
 
-		bot = AntiYad(log_file=f'{log_dir}/{date}.txt')
+		bot = AntiYad(log_file=f'{log_dir}/{date}.log')
 	else:
 		bot = AntiYad()
+	try:
+		thread1 = MultiThread(next_check_counter, bot)
+		thread2 = MultiThread(bot.run)
 
-	thread1 = MultiThread(next_check_counter, bot)
-	thread2 = MultiThread(bot.run)
-
-	thread1.start()
-	thread2.start()
+		thread1.start()
+		thread2.start()
+	except:
+		pass
