@@ -19,7 +19,7 @@ def execute_shell_cmd(cmd: str):
 	"""
 	res = subprocess.check_output(cmd, shell=True)
 	res = str(res)[2:-1]
-	return res.split('\\n')[:-1]
+	return list(filter(lambda x: len(x) > 0, res.split('\\n')))
 
 
 def get_yad_id():
@@ -52,15 +52,15 @@ def get_window_rect(window_id):
 
 
 def find_button_pos(logger):
-	#try: # TODO throws NoneType Exception
-	#	if pyscreeze.useOpenCV:
-	#		x, y = pyscreeze.locateCenterOnScreen(rel_path('../assets/button.png'), confidence=0.8)
-	#	else:
-	#		x, y = pyscreeze.locateCenterOnScreen(rel_path('../assets/button.png'))
-	#		logger.warning('Install OpenCV for better results.')
-	#	return 0, x, y
-	#except pyscreeze.ImageNotFoundException as e:
-	#	logger.warning(f'Could not locate button image: {type(2).__name__}: {str(e)}')
+	# try: # TODO throws NoneType Exception
+	# 	if pyscreeze.useOpenCV:
+	# 		x, y = pyscreeze.locateCenterOnScreen(rel_path('../assets/button.png'), confidence=0.8)
+	# 	else:
+	# 		x, y = pyscreeze.locateCenterOnScreen(rel_path('../assets/button.png'))
+	# 		logger.warning('Install OpenCV for better results.')
+	# 	return 0, x, y
+	# except pyscreeze.ImageNotFoundException as e:
+	# 	logger.warning(f'Could not locate button image: {type(2).__name__}: {str(e)}')
 
 	"""
 	Get button position from window's position
@@ -95,7 +95,7 @@ def get_en_layout():
 	en_idx = -1
 	for layout in layouts:
 		layout = layout.split(',')
-		if len(layout) == 2 and layout[0] == 'en':
+		if len(layout) == 2 and (layout[0] == 'us' or layout[0] == 'en'):
 			en_idx = int(layout[1])
 	return en_idx
 

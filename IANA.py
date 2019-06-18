@@ -70,7 +70,7 @@ class IAmNotAlive:
 
 	def lock(self):
 		self.logger.info('Locking')
-		pyautogui.hotkey('ctrleft', 'altleft', 'l')
+		pyautogui.hotkey('ctrlleft', 'altleft', 'l')
 
 	def dismiss_yad(self):
 		if self.failed >= self.max_fails:
@@ -107,7 +107,6 @@ class IAmNotAlive:
 					self.dismiss_yad()
 					if locked:
 						self.lock()
-
 					pyautogui.moveTo()
 				else:
 					self.logger.info('Nope')
