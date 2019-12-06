@@ -114,9 +114,9 @@ def get_host_name():
 def format_time(seconds=None, with_date=False):
 	if seconds:
 		t = time.gmtime(seconds)
-		return time.strftime(f'%H:%M:%S{"-%D" if with_date else ""}', t)
+		return time.strftime(f'%H:%M:%S{"_%m-%d-%y" if with_date else ""}', t)
 	else:
-		return time.strftime(f'%I:%M:%S %p{"-%D" if with_date else ""}')
+		return time.strftime(f'%I:%M:%S %p{"_%m-%d-%y" if with_date else ""}')
 
 
 def lock(timeout=60, interval=10, logger=None):
@@ -147,7 +147,9 @@ def mouse_click(x, y, logger=None):
 
 def screenshot(name=None,logger=None):
 	if name:
-		execute_shell_cmd('cd ~/log/screenshots && scrot {name}', logger)
+		execute_shell_cmd(f'cd ~/log/screenshots && scrot "{name}"', logger)
+		if logger:
+			logger.info(f'Saved screenshot in "~/log/screenshots/{name}"')
 	else:
 		execute_shell_cmd('cd ~/log/screenshots && scrot', logger)
 
