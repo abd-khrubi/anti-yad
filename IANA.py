@@ -1,26 +1,21 @@
-import pyautogui
 import utils.logger
 from utils.utils import *
 import subprocess
 import threading
 import sys
 
-pyautogui.PAUSE = 0.5
-pyautogui.FAILSAFE = True  # point mouse to (0, 0) in order to force stop the script
-
 DEBUG = False
-LOG_FILE = 'logs'  # put a directory relative path to write logs to
-
-PASSWORD = 'Fuckoff'  # So safe  Much security`
-
+LOG_FOLDER = 'logs'  # put a directory relative path to write logs to
 
 class IAmNotAlive:
-	def __init__(self, log_file=None, check_interval=600, max_fails=10):
+	def __init__(self, log_file=None, check_interval=600, max_fails=10, force_screen_wake=False):
+		self.force_screen_wake = force_screen_wake
 		self.max_fails = max_fails
 		self.check_interval = check_interval
 
 		self.next_check = -1
 		self.failed = 0
+		self.success = 0
 		self.estimated_next = -1
 		self.logger = utils.logger.Logger(log_file)
 		self.original_mouse_pos = None
@@ -36,7 +31,7 @@ class IAmNotAlive:
 				info.append(process)
 			if len(info) != 0:
 				if self.failed == 0:
-					self.logger.info(f'Found YAD (pid: {info[0][0]}')
+					self.logger.info(f'Found YAD (pid: {info[0][0]})')
 				elif self.failed > 1:
 					self.logger.warning(f'Found YAD (pid: {info[0][0]}. failed {self.failed} times')
 				return int(info[0][0])
@@ -44,33 +39,20 @@ class IAmNotAlive:
 			self.logger.debug('\'ps -e\' is empty')
 		return -1
 
-	def unlock(self, password):
+	def unlock(self):
 		self.logger.info('Unlocking')
+		if self.force_screen_wake:
+			execute_shell_cmd('xset dpms force on')
 
-		# change keyboard layout to english
-		current_layout = get_current_layout()
-		change_keyboard_layout()
+		execute_shell_cmd("loginctl unlock-session")
 
-		temp_pause = pyautogui.PAUSE
-		pyautogui.PAUSE = 2
-		pyautogui.moveTo(None, 100, duration=0.1)  # To wake the screen
-		pyautogui.click(980, 600, duration=0.5)
-		pyautogui.PAUSE = 0.5
-		pyautogui.typewrite(password, interval=0.1)
-		pyautogui.typewrite('\n')
-		pyautogui.PAUSE = temp_pause
-
-		# change keyboard layout back
-		change_keyboard_layout(current_layout)
-
-		time.sleep(2)
 		if is_screen_locked(self.logger):
 			self.logger.error('Failed to unlock screen')
 			self.failed = self.max_fails
 
 	def lock(self):
 		self.logger.info('Locking')
-		pyautogui.hotkey('ctrlleft', 'altleft', 'l')
+		lock(logger=self.logger)
 
 	def dismiss_yad(self):
 		if self.failed >= self.max_fails:
@@ -82,34 +64,37 @@ class IAmNotAlive:
 		if source is not None:
 			s = 'button image' if source == 0 else 'window\'s position'
 			self.logger.info(f'Located dismiss button at {x, y} from {s}')
-			pyautogui.click(x, y, duration=0.2)
+			force_dismiss_yad(x, y, logger=self.logger)
 			self.failed += 1
-			time.sleep(3)
+			time.sleep(2)
 			if self.check_yad() > 0:
 				self.dismiss_yad()
 			else:
 				self.logger.info('Dismissed YAD')
+				self.success += 1
 				t = time.strftime("%I:%M:%S %p", time.localtime(time.time() + (60 * 60)))
 				self.logger.info(f'Estimating next yad at {t}')
 
 	def run(self):
 		self.logger.info('Starting...')
-		time.sleep(0.5)
+		time.sleep(0.578)
 		while True:
 			try:
 				pid = self.check_yad()
 				self.failed = 0
 				if pid > 0:
-					self.original_mouse_pos = pyautogui.position()
+					self.original_mouse_pos = get_mouse_position(self.logger)
 					locked = is_screen_locked(self.logger)
 					if locked:
-						self.unlock(PASSWORD)
+						wake_screen()
+						self.unlock()
+					screenshot_name = f'{get_host_name()}_{format_time(with_date=True)} - {self.success + 1}.png'
+					screenshot(name=screenshot_name, logger=self.logger)
 					self.dismiss_yad()
+					mouse_move(*self.original_mouse_pos, self.logger)
 					if locked:
 						self.lock()
-					pyautogui.moveTo()
-				else:
-					self.logger.info('Nope')
+						execute_shell_cmd('xset dpms force standby')
 				self.next_check = time.time() + self.check_interval
 				time.sleep(self.check_interval)
 			except Exception as e:
@@ -117,13 +102,13 @@ class IAmNotAlive:
 
 
 class MultiThread(threading.Thread):
-	def __init__(self, func, *args):
+	def __init__(self, func, **kwargs):
 		super().__init__()
 		self.function = func
-		self.func_args = args
+		self.func_args = kwargs
 
 	def run(self):
-		self.function(*self.func_args)
+		self.function(**self.func_args)
 
 
 def next_check_counter(yad_bot):
@@ -135,9 +120,6 @@ def next_check_counter(yad_bot):
 	while True:
 		if yad_bot.next_check > 0:
 			t = time.gmtime(yad_bot.next_check - time.time())
-			# print(time.mktime(t))
-			# if time.mktime(t) < 0:
-			# 	t = 0
 			s = time.strftime("%H:%M:%S", t)
 			print(f'\33]0;Next check in {s}\a', end='', flush=True)
 			time.sleep(1)
@@ -150,20 +132,23 @@ def rel_path(filename):
 if __name__ == '__main__':
 	subprocess.call('clear', shell=True)
 
-	if LOG_FILE:
+	if LOG_FOLDER:
 		date = time.strftime('%d.%m.%Y')
-		log_dir = rel_path(f"{LOG_FILE}/")
+		log_dir = rel_path(f"{LOG_FOLDER}/")
 		if not os.path.exists(log_dir):
 			os.mkdir(log_dir)
 
-		bot = IAmNotAlive(log_file=f'{log_dir}/{date}.log')
+		bot = IAmNotAlive(log_file=f'{log_dir}/{get_host_name()}_{date}.log', force_screen_wake=True, check_interval=100)
 	else:
-		bot = IAmNotAlive()
+		bot = IAmNotAlive(force_screen_wake=True, check_interval=100)
 	try:
-		thread1 = MultiThread(next_check_counter, bot)
+		thread1 = MultiThread(next_check_counter, yad_bot=bot)
 		thread2 = MultiThread(bot.run)
 
 		thread1.start()
 		thread2.start()
-	except Exception as _:
+
+		thread1.join()
+		thread2.join()
+	except:
 		pass

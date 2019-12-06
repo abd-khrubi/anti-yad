@@ -1,4 +1,4 @@
-from .utils import format_time
+from .utils import format_time, get_machine_name
 import sys
 from IANA import DEBUG
 
@@ -16,9 +16,9 @@ class Logger:
 
 	def log(self, message, prefix=None, error=False):
 		if prefix:
-			self.print(f'[{format_time()}] [{prefix}] {message}', error=error)
+			self.print(f'[{get_machine_name()}] [{format_time()}] [{prefix}] {message}', error=error)
 		else:
-			self.print(f'[{format_time()}] {message}', error=error)
+			self.print(f'[{get_machine_name()}] [{format_time()}] {message}', error=error)
 
 	def error(self, message):
 		self.log(message, prefix='ERROR', error=True)
