@@ -1,7 +1,7 @@
 import os
 import subprocess
-import pyscreeze
 import time
+from pynput.keyboard import Controller as KBController
 
 
 def rel_path(filename):
@@ -13,13 +13,16 @@ def rel_path(filename):
 	return os.path.join(os.path.dirname(__file__), filename)
 
 
-def execute_shell_cmd(cmd: str):
+def execute_shell_cmd(cmd: str, logger=None):
 	"""
 	execute shell command and returns a list of the output lines
 	"""
 	res = subprocess.check_output(cmd, shell=True)
 	res = str(res)[2:-1]
-	return list(filter(lambda x: len(x) > 0, res.split('\\n')))
+	res = list(filter(lambda x: len(x) > 0, res.split('\\n')))
+	if logger:
+		logger.debug(res)
+	return res
 
 
 def get_yad_id():
@@ -36,6 +39,9 @@ def get_yad_id():
 
 
 def get_window_rect(window_id):
+	"""
+	Gets the position and dimensions of the given window ID
+	"""
 	attrs = execute_shell_cmd(f'xwininfo -id {window_id} -stats')
 	x, y, w, h = -1, -1, -1, -1
 	for line in attrs:
@@ -52,16 +58,6 @@ def get_window_rect(window_id):
 
 
 def find_button_pos(logger):
-	# try: # TODO throws NoneType Exception
-	# 	if pyscreeze.useOpenCV:
-	# 		x, y = pyscreeze.locateCenterOnScreen(rel_path('../assets/button.png'), confidence=0.8)
-	# 	else:
-	# 		x, y = pyscreeze.locateCenterOnScreen(rel_path('../assets/button.png'))
-	# 		logger.warning('Install OpenCV for better results.')
-	# 	return 0, x, y
-	# except pyscreeze.ImageNotFoundException as e:
-	# 	logger.warning(f'Could not locate button image: {type(2).__name__}: {str(e)}')
-
 	"""
 	Get button position from window's position
 	"""
@@ -73,8 +69,23 @@ def find_button_pos(logger):
 		y = base_y + height - 15
 		if x > 0 and y > 0:
 			return 1, x, y
+
 	logger.error('Fatal: Could not find button\'s position.')
 	return None, None, None
+
+
+def force_dismiss_yad(x, y, logger=None):
+	try:
+
+		window_id = get_yad_id()
+		keyboard = KBController()
+		execute_shell_cmd(f"xprop -id {window_id} -f  WM_HINTS 32c -set WM_HINTS '0x2, 0x0, 0x1, 0x4, 0x0'",
+		                  logger=logger)
+		mouse_click(x, y, logger=logger)
+		keyboard.type(' ')
+		return True
+	except:
+		return False
 
 
 def is_screen_locked(logger):
@@ -85,30 +96,70 @@ def is_screen_locked(logger):
 		logger.error('No response from mate-screensaver')
 	return None
 
-
-def get_current_layout():
-	return int(execute_shell_cmd(rel_path('./xkblayout-state print "%c"'))[0])
-
-
-def get_en_layout():
-	layouts = execute_shell_cmd(rel_path('./xkblayout-state print "%E"'))
-	en_idx = -1
-	for layout in layouts:
-		layout = layout.split(',')
-		if len(layout) == 2 and (layout[0] == 'us' or layout[0] == 'en'):
-			en_idx = int(layout[1])
-	return en_idx
+def wake_screen():
+	execute_shell_cmd('xset dpms force on')
+	pass
 
 
-def change_keyboard_layout(layout_idx=None):
-	if layout_idx is None:
-		layout_idx = get_en_layout()
-	execute_shell_cmd(rel_path(f'./xkblayout-state set {layout_idx}'))
+def get_machine_name():
+	host = execute_shell_cmd('hostname')[0]
+	user = execute_shell_cmd('whoami')[0]
+	return f'{user}@{host}'
 
 
-def format_time(seconds=None):
+def get_host_name():
+	return execute_shell_cmd('hostname')[0]
+
+
+def format_time(seconds=None, with_date=False):
 	if seconds:
 		t = time.gmtime(seconds)
-		return time.strftime('%H:%M:%S', t)
+		return time.strftime(f'%H:%M:%S{"-%D" if with_date else ""}', t)
 	else:
-		return time.strftime("%I:%M:%S %p")
+		return time.strftime(f'%I:%M:%S %p{"-%D" if with_date else ""}')
+
+
+def lock(timeout=60, interval=10, logger=None):
+	tries = int(timeout / interval)
+
+	execute_shell_cmd('mate-screensaver-command -l')
+	while tries > 0 and not is_screen_locked(logger):
+		time.sleep(interval)
+		wake_screen()
+		execute_shell_cmd('killall mate-screensaver && matescreensaver &')
+		execute_shell_cmd('mate-screensaver-command -l')
+		tries -= 1
+
+	if logger:
+		if tries > 0:
+			logger.info('Successfully locked the screen')
+		else:
+			logger.error('Failed to lock the screen')
+
+
+def mouse_move(x, y, logger=None):
+	execute_shell_cmd(rel_path(f"./XMouse move {x} {y}"), logger)
+
+
+def mouse_click(x, y, logger=None):
+	print(execute_shell_cmd(rel_path(f'./XMouse move-click {x} {y} 1'), logger))
+
+
+def screenshot(name=None,logger=None):
+	if name:
+		execute_shell_cmd('cd ~/log/screenshots && scrot {name}', logger)
+	else:
+		execute_shell_cmd('cd ~/log/screenshots && scrot', logger)
+
+
+
+def get_mouse_position(logger=None):
+	out = execute_shell_cmd(rel_path(f'./XMouse position'), logger)[0]
+	out = out.strip().split(',')
+	x, y = 0, 0
+	try:
+		x = int(out[0])
+		y = int(out[1])
+	except:
+		pass
+	return x, y
